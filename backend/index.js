@@ -100,12 +100,14 @@ let books = [
 
 const typeDefs = `
   type Author {
+    id: ID!,
     name: String!,
     born: Int
     bookCount: Int!
   }
 
   type Book {
+    id: ID!,
     title: String!,
     published: Int!,
     author: String!,
