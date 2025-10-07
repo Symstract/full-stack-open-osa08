@@ -2,10 +2,10 @@ import { useQuery } from "@apollo/client/react";
 import { ALL_AUTHORS } from "../queries";
 import AuthorAgeForm from "./AuthorAgeForm";
 
-const Authors = (props) => {
-  const { loading, data } = useQuery(ALL_AUTHORS);
+const Authors = ({ show, showEditForm }) => {
+  const { loading, data } = useQuery(ALL_AUTHORS, { fetchPolicy: "no-cache" });
 
-  if (!props.show) {
+  if (!show) {
     return null;
   }
 
@@ -32,7 +32,7 @@ const Authors = (props) => {
           ))}
         </tbody>
       </table>
-      <AuthorAgeForm authors={data.allAuthors} />
+      {showEditForm && <AuthorAgeForm authors={data.allAuthors} />}
     </div>
   );
 };

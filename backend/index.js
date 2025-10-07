@@ -151,6 +151,7 @@ const typeDefs = `
     authorCount: Int!
     allBooks(author: String, genre: String): [Book!]!
     allAuthors: [Author!]!
+    allGenres: [String!]!
   }
 
   type Mutation {
@@ -174,9 +175,7 @@ const typeDefs = `
 
 const resolvers = {
   Query: {
-    me: (root, args, context) => {
-      return context.currentUser;
-    },
+    me: (root, args, context) => context.currentUser,
     bookCount: async () => Book.collection.countDocuments(),
     authorCount: async () => Author.collection.countDocuments(),
     allBooks: async (root, args) => {
@@ -194,6 +193,15 @@ const resolvers = {
       return Book.find(filters).populate("author");
     },
     allAuthors: async () => Author.find({}),
+    allGenres: async () => {
+      const genres = await Book.aggregate([
+        { $unwind: "$genres" },
+        { $group: { _id: "$genres" } },
+        { $sort: { _id: 1 } },
+      ]);
+
+      return genres.map((genre) => genre._id);
+    },
   },
   Mutation: {
     createUser: async (root, args) => {

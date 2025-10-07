@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client/react";
-import { ALL_AUTHORS, ALL_BOOKS, CREATE_BOOK } from "../queries";
+import { ALL_AUTHORS, ALL_BOOKS, ALL_GENRES, CREATE_BOOK } from "../queries";
 
 const NewBook = (props) => {
   const [title, setTitle] = useState("");
@@ -10,7 +10,19 @@ const NewBook = (props) => {
   const [genres, setGenres] = useState([]);
 
   const [createBook] = useMutation(CREATE_BOOK, {
-    refetchQueries: [{ query: ALL_BOOKS }, { query: ALL_AUTHORS }],
+    // Re-fetching doesn't seem to work reliably?
+    // https://github.com/apollographql/apollo-client/issues/5419
+    refetchQueries: [
+      { query: ALL_BOOKS },
+      { query: ALL_AUTHORS },
+      { query: ALL_GENRES },
+    ],
+    // This does nothing?
+    update: (cache, response) => {
+      cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => {
+        return { allBooks: allBooks.concat(response.data.addBook) };
+      });
+    },
   });
 
   if (!props.show) {
