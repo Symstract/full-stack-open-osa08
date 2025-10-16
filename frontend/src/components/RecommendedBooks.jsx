@@ -6,8 +6,6 @@ const RecommendedBooks = ({ show, favoriteGenre }) => {
     variables: { genre: favoriteGenre },
   });
 
-  console.log(show);
-
   if (!show) {
     return null;
   }

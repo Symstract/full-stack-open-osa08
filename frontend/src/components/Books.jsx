@@ -7,7 +7,6 @@ const Books = (props) => {
   const genreResult = useQuery(ALL_GENRES, { fetchPolicy: "no-cache" });
   const bookResult = useQuery(ALL_BOOKS, {
     variables: { genre: selectedGenre },
-    fetchPolicy: "no-cache",
   });
 
   if (!props.show) {

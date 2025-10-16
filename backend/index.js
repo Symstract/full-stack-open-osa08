@@ -1,9 +1,21 @@
-const { GraphQLError } = require("graphql");
+const express = require("express");
+const cors = require("cors");
+const http = require("http");
+const {
+  ApolloServerPluginDrainHttpServer,
+} = require("@apollo/server/plugin/drainHttpServer");
+const { makeExecutableSchema } = require("@graphql-tools/schema");
 const { ApolloServer } = require("@apollo/server");
-const { startStandaloneServer } = require("@apollo/server/standalone");
+const { GraphQLError } = require("graphql");
+const { expressMiddleware } = require("@as-integrations/express5");
+const { WebSocketServer } = require("ws");
+const { useServer } = require("graphql-ws/use/ws");
+const { PubSub } = require("graphql-subscriptions");
+const DataLoader = require("dataloader");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
+
 const Author = require("./models/author");
 const Book = require("./models/book");
 const User = require("./models/user");
@@ -171,7 +183,27 @@ const typeDefs = `
     ): Book
     editAuthor(name: String!, setBornTo: Int!): Author
   }
+
+  type Subscription {
+    bookAdded: Book!
+}
 `;
+
+const pubsub = new PubSub();
+
+const batchAuthorBookCounts = new DataLoader(async (ids) => {
+  const countPerAuthor = await Book.aggregate([
+    { $group: { _id: "$author", count: { $count: {} } } },
+  ]);
+
+  const countPerAuthorIdMap = new Map();
+
+  countPerAuthor.forEach((author) =>
+    countPerAuthorIdMap.set(author._id.toString(), author.count)
+  );
+
+  return ids.map((id) => countPerAuthorIdMap.get(id.toString()) || 0);
+});
 
 const resolvers = {
   Query: {
@@ -273,6 +305,8 @@ const resolvers = {
         });
       }
 
+      pubsub.publish("BOOK_ADDED", { bookAdded: book });
+
       return book;
     },
     editAuthor: async (root, args, { currentUser }) => {
@@ -294,29 +328,66 @@ const resolvers = {
   },
   Author: {
     bookCount: async (root) => {
-      return Book.find({ author: root._id }).count();
+      return batchAuthorBookCounts.load(root._id);
+    },
+  },
+  Subscription: {
+    bookAdded: {
+      subscribe: () => pubsub.asyncIterableIterator("BOOK_ADDED"),
     },
   },
 };
 
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-});
+const start = async () => {
+  const app = express();
+  const httpServer = http.createServer(app);
 
-startStandaloneServer(server, {
-  listen: { port: 4000 },
-  context: async ({ req, res }) => {
-    const auth = req ? req.headers.authorization : null;
-    if (auth && auth.startsWith("Bearer ")) {
-      const decodedToken = jwt.verify(
-        auth.substring(7),
-        process.env.JWT_SECRET
-      );
-      const currentUser = await User.findById(decodedToken.id);
-      return { currentUser };
-    }
-  },
-}).then(({ url }) => {
-  console.log(`Server ready at ${url}`);
-});
+  const wsServer = new WebSocketServer({ server: httpServer, path: "/" });
+  const schema = makeExecutableSchema({ typeDefs, resolvers });
+  const serverCleanup = useServer({ schema }, wsServer);
+
+  const server = new ApolloServer({
+    schema,
+    plugins: [
+      ApolloServerPluginDrainHttpServer({ httpServer }),
+      {
+        async serverWillStart() {
+          return {
+            async drainServer() {
+              await serverCleanup.dispose();
+            },
+          };
+        },
+      },
+    ],
+  });
+
+  await server.start();
+
+  app.use(
+    "/",
+    cors(),
+    express.json(),
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        const auth = req ? req.headers.authorization : null;
+        if (auth && auth.startsWith("Bearer ")) {
+          const decodedToken = jwt.verify(
+            auth.substring(7),
+            process.env.JWT_SECRET
+          );
+          const currentUser = await User.findById(decodedToken.id);
+          return { currentUser };
+        }
+      },
+    })
+  );
+
+  const PORT = 4000;
+
+  httpServer.listen(PORT, () =>
+    console.log(`Server is now running on http://localhost:${PORT}`)
+  );
+};
+
+start();

@@ -1,18 +1,36 @@
 import { useEffect, useState } from "react";
-import { useApolloClient, useLazyQuery } from "@apollo/client/react";
+import {
+  useApolloClient,
+  useLazyQuery,
+  useSubscription,
+} from "@apollo/client/react";
+
 import Authors from "./components/Authors";
 import Books from "./components/Books";
 import NewBook from "./components/NewBook";
 import LoginForm from "./components/LoginForm";
-import { ME } from "./queries";
+import { ALL_BOOKS, BOOK_ADDED, ME } from "./queries";
 import RecommendedBooks from "./components/RecommendedBooks";
+import { addBookToApolloCache } from "./utils";
 
 const App = () => {
-  const [token, setToken] = useState(null);
+  const [token, setToken] = useState(
+    localStorage.getItem("library-user-token")
+  );
   const [page, setPage] = useState("authors");
   const client = useApolloClient();
 
   const [getCurrentUser, currentUser] = useLazyQuery(ME);
+
+  useSubscription(BOOK_ADDED, {
+    onData: ({ data }) => {
+      console.log("data received");
+
+      const bookAdded = data.data.bookAdded;
+      window.alert(`Added a book called ${bookAdded.title}`);
+      addBookToApolloCache(client.cache, ALL_BOOKS, bookAdded);
+    },
+  });
 
   useEffect(() => {
     getCurrentUser();

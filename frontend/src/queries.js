@@ -9,7 +9,7 @@ export const LOGIN = gql`
 `;
 
 export const ME = gql`
-  query {
+  query me {
     me {
       id
       username
@@ -19,7 +19,7 @@ export const ME = gql`
 `;
 
 export const ALL_AUTHORS = gql`
-  query {
+  query allAuthors {
     allAuthors {
       id
       name
@@ -29,21 +29,29 @@ export const ALL_AUTHORS = gql`
   }
 `;
 
-export const ALL_BOOKS = gql`
-  query allBooks($author: String, $genre: String) {
-    allBooks(author: $author, genre: $genre) {
-      id
-      title
-      author {
-        name
-      }
-      published
+const BOOK_DETAILS = gql`
+  fragment bookDetails on Book {
+    id
+    title
+    author {
+      name
     }
+    published
+    genres
   }
 `;
 
+export const ALL_BOOKS = gql`
+  query allBooks($author: String, $genre: String) {
+    allBooks(author: $author, genre: $genre) {
+      ...bookDetails
+    }
+  }
+  ${BOOK_DETAILS}
+`;
+
 export const ALL_GENRES = gql`
-  query {
+  query allGenres {
     allGenres
   }
 `;
@@ -61,14 +69,19 @@ export const CREATE_BOOK = gql`
       published: $published
       genres: $genres
     ) {
-      id
-      title
-      author {
-        name
-      }
-      published
+      ...bookDetails
     }
   }
+  ${BOOK_DETAILS}
+`;
+
+export const BOOK_ADDED = gql`
+  subscription bookAdded {
+    bookAdded {
+      ...bookDetails
+    }
+  }
+  ${BOOK_DETAILS}
 `;
 
 export const EDIT_AUTHOR = gql`

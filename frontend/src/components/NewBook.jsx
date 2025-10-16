@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useMutation } from "@apollo/client/react";
+
 import { ALL_AUTHORS, ALL_BOOKS, ALL_GENRES, CREATE_BOOK } from "../queries";
+import { addBookToApolloCache } from "../utils";
 
 const NewBook = (props) => {
   const [title, setTitle] = useState("");
@@ -17,11 +19,8 @@ const NewBook = (props) => {
       { query: ALL_AUTHORS },
       { query: ALL_GENRES },
     ],
-    // This does nothing?
     update: (cache, response) => {
-      cache.updateQuery({ query: ALL_BOOKS }, ({ allBooks }) => {
-        return { allBooks: allBooks.concat(response.data.addBook) };
-      });
+      addBookToApolloCache(cache, ALL_BOOKS, response.data.addBook);
     },
   });
 
