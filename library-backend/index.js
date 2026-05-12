@@ -15,6 +15,7 @@ const DataLoader = require("dataloader");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
+const dns = require("node:dns/promises");
 
 const Author = require("./models/author");
 const Book = require("./models/book");
@@ -25,6 +26,10 @@ require("dotenv").config();
 const MONGODB_URI = process.env.MONGODB_URI;
 
 console.log("connecting to", MONGODB_URI);
+
+// Without this, the following error is thrown:
+// ECONNREFUSED _mongodb._tcp.cluster0.wfpyx82.mongodb.net
+dns.setServers(["1.1.1.1", "1.0.0.1"]);
 
 mongoose
   .connect(MONGODB_URI)
@@ -103,7 +108,7 @@ const batchAuthorBookCounts = new DataLoader(async (ids) => {
   const countPerAuthorIdMap = new Map();
 
   countPerAuthor.forEach((author) =>
-    countPerAuthorIdMap.set(author._id.toString(), author.count)
+    countPerAuthorIdMap.set(author._id.toString(), author.count),
   );
 
   return ids.map((id) => countPerAuthorIdMap.get(id.toString()) || 0);
@@ -278,19 +283,19 @@ const start = async () => {
         if (auth && auth.startsWith("Bearer ")) {
           const decodedToken = jwt.verify(
             auth.substring(7),
-            process.env.JWT_SECRET
+            process.env.JWT_SECRET,
           );
           const currentUser = await User.findById(decodedToken.id);
           return { currentUser };
         }
       },
-    })
+    }),
   );
 
   const PORT = 4000;
 
   httpServer.listen(PORT, () =>
-    console.log(`Server is now running on http://localhost:${PORT}`)
+    console.log(`Server is now running on http://localhost:${PORT}`),
   );
 };
 

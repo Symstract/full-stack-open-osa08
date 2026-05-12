@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
-// you must install this library
-const uniqueValidator = require("mongoose-unique-validator");
+const uniqueValidator = require("mongoose-unique-validator").default;
 
 const schema = new mongoose.Schema({
   title: {
