@@ -2,10 +2,6 @@ const mongoose = require("mongoose");
 mongoose.set("strictQuery", false);
 const dns = require("node:dns/promises");
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
-console.log("connecting to", MONGODB_URI);
-
 // Without this, the following error is thrown:
 // ECONNREFUSED _mongodb._tcp.cluster0.wfpyx82.mongodb.net
 dns.setServers(["1.1.1.1", "1.0.0.1"]);
