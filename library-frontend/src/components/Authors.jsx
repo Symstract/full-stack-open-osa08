@@ -3,7 +3,9 @@ import { ALL_AUTHORS } from "../queries";
 import AuthorAgeForm from "./AuthorAgeForm";
 
 const Authors = ({ show, showEditForm }) => {
-  const { loading, data } = useQuery(ALL_AUTHORS, { fetchPolicy: "no-cache" });
+  const { loading, data, refetch } = useQuery(ALL_AUTHORS, {
+    fetchPolicy: "no-cache",
+  });
 
   if (!show) {
     return null;
@@ -32,7 +34,9 @@ const Authors = ({ show, showEditForm }) => {
           ))}
         </tbody>
       </table>
-      {showEditForm && <AuthorAgeForm authors={data.allAuthors} />}
+      {showEditForm && (
+        <AuthorAgeForm authors={data.allAuthors} onUpdate={() => refetch()} />
+      )}
     </div>
   );
 };

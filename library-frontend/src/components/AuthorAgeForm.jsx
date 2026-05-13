@@ -2,11 +2,13 @@ import { useState } from "react";
 import { useMutation } from "@apollo/client/react";
 import { ALL_AUTHORS, EDIT_AUTHOR } from "../queries";
 
-const AuthorAgeForm = ({ authors }) => {
+const AuthorAgeForm = ({ authors, onUpdate }) => {
   const [name, setName] = useState(authors[0].name);
   const [born, setBorn] = useState("");
 
-  const [editAuthor] = useMutation(EDIT_AUTHOR);
+  const [editAuthor] = useMutation(EDIT_AUTHOR, {
+    onCompleted: () => onUpdate(),
+  });
 
   const submit = async (event) => {
     event.preventDefault();
@@ -23,7 +25,11 @@ const AuthorAgeForm = ({ authors }) => {
       <form onSubmit={submit}>
         <div>
           name
-          <select value={name} onChange={({ target }) => setName(target.value)}>
+          <select
+            name="name"
+            value={name}
+            onChange={({ target }) => setName(target.value)}
+          >
             {authors.map((author) => (
               <option key={author.name} value={author.name}>
                 {author.name}
@@ -32,14 +38,18 @@ const AuthorAgeForm = ({ authors }) => {
           </select>
         </div>
         <div>
-          born
+          <label htmlFor="born">born</label>
+
           <input
+            id="born"
             type="number"
             value={born}
             onChange={({ target }) => setBorn(target.value)}
           />
         </div>
-        <button type="submit">Update author</button>
+        <button name="update author" type="submit">
+          Update author
+        </button>
       </form>
     </div>
   );
