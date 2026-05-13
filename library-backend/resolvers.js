@@ -1,11 +1,27 @@
+const DataLoader = require("dataloader");
 const { GraphQLError } = require("graphql");
 const { PubSub } = require("graphql-subscriptions");
+const jwt = require("jsonwebtoken");
 
 const Author = require("./models/author");
 const Book = require("./models/book");
 const User = require("./models/user");
 
 const pubsub = new PubSub();
+
+const batchAuthorBookCounts = new DataLoader(async (ids) => {
+  const countPerAuthor = await Book.aggregate([
+    { $group: { _id: "$author", count: { $count: {} } } },
+  ]);
+
+  const countPerAuthorIdMap = new Map();
+
+  countPerAuthor.forEach((author) =>
+    countPerAuthorIdMap.set(author._id.toString(), author.count),
+  );
+
+  return ids.map((id) => countPerAuthorIdMap.get(id.toString()) || 0);
+});
 
 const resolvers = {
   Query: {

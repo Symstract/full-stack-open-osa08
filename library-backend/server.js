@@ -9,25 +9,11 @@ const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@as-integrations/express5");
 const { WebSocketServer } = require("ws");
 const { useServer } = require("graphql-ws/use/ws");
-const DataLoader = require("dataloader");
 const jwt = require("jsonwebtoken");
 
 const resolvers = require("./resolvers");
 const typeDefs = require("./schema");
-
-const batchAuthorBookCounts = new DataLoader(async (ids) => {
-  const countPerAuthor = await Book.aggregate([
-    { $group: { _id: "$author", count: { $count: {} } } },
-  ]);
-
-  const countPerAuthorIdMap = new Map();
-
-  countPerAuthor.forEach((author) =>
-    countPerAuthorIdMap.set(author._id.toString(), author.count),
-  );
-
-  return ids.map((id) => countPerAuthorIdMap.get(id.toString()) || 0);
-});
+const User = require("./models/user");
 
 const startServer = async (port) => {
   const app = express();
