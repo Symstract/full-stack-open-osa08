@@ -43,6 +43,7 @@ const typeDefs = /* GraphQL */ `
       genres: [String!]!
     ): Book
     editAuthor(name: String!, setBornTo: Int!): Author
+    _resetDatabase: Boolean
   }
 
   type Subscription {

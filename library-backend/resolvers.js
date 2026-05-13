@@ -87,7 +87,7 @@ const resolvers = {
     },
     addBook: async (root, args, { currentUser }) => {
       if (!currentUser) {
-        throw new GraphQLError("wrong credentials", {
+        throw new GraphQLError("not authenticated", {
           extensions: { code: "BAD_USER_INPUT" },
         });
       }
@@ -129,7 +129,7 @@ const resolvers = {
     },
     editAuthor: async (root, args, { currentUser }) => {
       if (!currentUser) {
-        throw new GraphQLError("wrong credentials", {
+        throw new GraphQLError("not authenticated", {
           extensions: { code: "BAD_USER_INPUT" },
         });
       }
@@ -139,9 +139,18 @@ const resolvers = {
       if (!author) return null;
 
       author.born = args.setBornTo;
-      author.save();
+      await author.save();
 
       return author;
+    },
+    _resetDatabase: async () => {
+      if (process.env.NODE_ENV !== "test") {
+        throw new GraphQLError("_resetDatabase is only available in test mode");
+      }
+      await Author.deleteMany({});
+      await Book.deleteMany({});
+      await User.deleteMany({});
+      return true;
     },
   },
   Author: {
